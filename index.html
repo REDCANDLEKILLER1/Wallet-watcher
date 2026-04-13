@@ -53,8 +53,32 @@
             padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
         }
         .brand { display: flex; align-items: center; gap: 10px; font-size: 1.4em; font-weight: 700; color: var(--accent-gold); font-family: 'Outfit'; }
+        
         main { flex: 1; padding: 20px 24px; width: 100%; max-width: 1200px; margin: 0 auto; }
         
+        /* Dialogue Bubble */
+        .speech-container {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        .speech-bubble {
+            background: var(--accent-gold);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 12px 12px 12px 0;
+            font-weight: 500;
+            font-size: 0.95em;
+            position: relative;
+            box-shadow: var(--shadow);
+            max-width: 80%;
+        }
+        .corn-avatar {
+            font-size: 2.5em;
+        }
+
         .auth-card {
             max-width: 400px; margin: 60px auto; text-align: center; padding: 40px;
             background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow);
@@ -90,6 +114,7 @@
         .list-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border-color); font-size: 0.8em; align-items: center; }
         .token-icon { width: 24px; height: 24px; border-radius: 50%; background: var(--bg-input); object-fit: cover; }
         
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .spin { animation: rotation 1s linear infinite; display: inline-block; }
         @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .screen { display: none; }
@@ -109,8 +134,8 @@
     <main>
         <div id="screen-setup" class="screen">
             <div class="auth-card">
-                <h2>Set Master Key</h2>
-                <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 10px;">Choose a 6-digit PIN for local encryption.</p>
+                <h2>Welcome to the Silo</h2>
+                <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 10px;">Corn, set a 6-digit PIN to secure your grains locally.</p>
                 <input type="password" id="setup-pin" class="pin-input" maxlength="6" inputmode="numeric" placeholder="000000">
                 <button class="btn" style="width:100%" onclick="initVault()">Initialize Silo</button>
             </div>
@@ -118,16 +143,22 @@
 
         <div id="screen-login" class="screen">
             <div class="auth-card">
-                <h2>Unlock Grains</h2>
+                <h2>Silo is Locked</h2>
                 <input type="password" id="login-pin" class="pin-input" maxlength="6" inputmode="numeric">
-                <button class="btn" style="width:100%" onclick="unlockVault()">Authenticate</button>
+                <button class="btn" style="width:100%" onclick="unlockVault()">Unlock Grains</button>
                 <div id="login-err" style="color:var(--accent-red); margin-top:10px; font-size: 0.9em;"></div>
             </div>
         </div>
 
         <div id="screen-dash" class="screen">
+            <!-- Dynamic Dialogue -->
+            <div class="speech-container">
+                <div class="corn-avatar">🌽</div>
+                <div class="speech-bubble" id="silo-speech">Checking the fields, Corn...</div>
+            </div>
+
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
-                <h1>Grains</h1>
+                <h1>Grain Management</h1>
                 <div style="display:flex; gap:8px; flex-grow:1; max-width:400px;">
                     <input type="text" id="wallet-input" placeholder="Enter rAddress..." style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--border-color); outline:none; background: var(--bg-input); color: var(--text-main);">
                     <button class="btn" style="padding: 8px 16px;" onclick="addWallets()">Add</button>
@@ -138,7 +169,7 @@
     </main>
 
     <script>
-        const STORAGE_KEY = 'corn_silo_secure_v6';
+        const STORAGE_KEY = 'corn_silo_secure_v7';
         const RPC_URL = "https://xrplcluster.com";
         let vaultData = [];
         let currentPin = '';
@@ -146,6 +177,25 @@
 
         function toggleTheme() { document.body.classList.toggle('dark-mode'); }
         function toggleAcc(el) { el.parentElement.classList.toggle('open'); }
+
+        // Dialogue Helper
+        function siloTalk(msg) {
+            const bubble = document.getElementById('silo-speech');
+            if (bubble) {
+                bubble.style.animation = 'none';
+                bubble.offsetHeight; // trigger reflow
+                bubble.style.animation = 'fadeIn 0.5s ease-out';
+                bubble.textContent = msg;
+            }
+        }
+
+        function getTimeGreeting() {
+            const hour = new Date().getHours();
+            if (hour >= 5 && hour < 12) return "Good morning, Corn! Ready for a harvest?";
+            if (hour >= 12 && hour < 17) return "Good afternoon, Corn. How was lunch? Let's check the grains.";
+            if (hour >= 17 && hour < 21) return "Good evening, Corn. The fields are looking stable.";
+            return "Late night grind, Corn? Let's keep these grains safe.";
+        }
 
         async function rpc(method, params) {
             try {
@@ -209,6 +259,7 @@
             vaultData = [];
             saveVault();
             showScreen('dash');
+            siloTalk(getTimeGreeting());
             start();
         }
 
@@ -223,6 +274,7 @@
                 vaultData = JSON.parse(dec);
                 currentPin = pin;
                 showScreen('dash');
+                siloTalk(getTimeGreeting());
                 start();
             } catch (e) {
                 document.getElementById('login-err').textContent = "Invalid PIN";
@@ -251,7 +303,10 @@
             if (addr.startsWith('r') && !vaultData.includes(addr)) {
                 vaultData.push(addr);
                 saveVault();
+                siloTalk(`Adding ${addr.slice(0,6)}... to the bin. Harvesting data now.`);
                 render();
+            } else if (vaultData.includes(addr)) {
+                siloTalk("Corn, we've already got that one in the bin!");
             }
             document.getElementById('wallet-input').value = '';
         }
@@ -263,7 +318,7 @@
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.id = `card-${addr}`;
-                card.innerHTML = `<div style="text-align:center; padding:20px;"><i class="ph ph-spinner spin"></i> Fetching Grain Data...</div>`;
+                card.innerHTML = `<div style="text-align:center; padding:20px;"><i class="ph ph-spinner spin"></i> Fetching...</div>`;
                 grid.appendChild(card);
                 fetchSilo(addr);
             });
@@ -299,7 +354,7 @@
                         <i class="ph-fill ph-check-circle" style="color:var(--accent-green)"></i>
                     </div>
                     <div class="silo-bal">${bal.toLocaleString(undefined, {minimumFractionDigits:2})} <span>XRP</span></div>
-                    <div class="silo-usd">$${(totalXrpValue * xrpUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} TOTAL</div>
+                    <div class="silo-usd">$${(totalXrpValue * xrpUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
                     
                     <div class="silo-stats">
                         <div class="stat-col"><span class="stat-lbl">Spendable</span><span class="stat-val">${spendable.toFixed(2)}</span></div>
@@ -314,7 +369,7 @@
                                 return `
                                 <div class="list-row">
                                     <div style="display:flex; align-items:center; gap:10px;">
-                                        <img src="${avatar}" class="token-icon" onerror="this.src='https://via.placeholder.com/24?text=?'">
+                                        <img src="${avatar}" class="token-icon" onerror="this.onerror=null;this.src='https://via.placeholder.com/24?text=${t.currency[0]}'">
                                         <div>
                                             <strong>${t.currency.length > 3 ? 'TOKEN' : t.currency}</strong><br>
                                             <small style="color:var(--text-muted); font-size:0.8em;">${parseFloat(t.balance).toLocaleString()}</small>
@@ -328,7 +383,7 @@
                             }).join('') || '<div class="list-row">Silo Empty</div>'}
                         </div>
                     </div>
-                    <button onclick="removeWallet('${addr}')" style="position:absolute; top:5px; right:5px; background:none; border:none; color:var(--accent-red); cursor:pointer; opacity:0.3;">&times;</button>
+                    <button onclick="removeWallet('${addr}')" style="position:absolute; top:5px; right:5px; background:none; border:none; color:var(--accent-red); cursor:pointer; opacity:0.3; font-size:1.4em;">&times;</button>
                 `;
             } catch (e) {
                 document.getElementById(`card-${addr}`).innerHTML = `<div style="padding:20px; text-align:center; color:var(--accent-red);">Unfunded / Address Error</div>`;
@@ -338,6 +393,7 @@
         function removeWallet(addr) {
             vaultData = vaultData.filter(a => a !== addr);
             saveVault();
+            siloTalk(`Removed wallet ${addr.slice(0,6)}... Corn, that's one less to watch.`);
             render();
         }
 

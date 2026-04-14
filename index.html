@@ -252,26 +252,206 @@
             document.body.classList.toggle('light-mode'); 
             const isLight = document.body.classList.contains('light-mode');
             document.querySelector('.ph-moon, .ph-sun').className = isLight ? 'ph ph-sun' : 'ph ph-moon';
+            siloTalk(isLight ? CORN.pick(CORN.themeLight) : CORN.pick(CORN.themeDark));
         }
 
-        function toggleAcc(el) { el.parentElement.classList.toggle('open'); }
+        function toggleAcc(el) {
+            const isOpen = el.parentElement.classList.toggle('open');
+            siloTalk(isOpen ? CORN.pick(CORN.openAccordion) : CORN.pick(CORN.closeAccordion));
+        }
+
+        // ── Corn mascot vocabulary engine ────────────────────────────────
+        const CORN = {
+            pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
+
+            greetings: [
+                "Wakey wakey, eggs and MAIZE! Let's count those kernels.",
+                "Well butter my cob, you're back! Ready to check the harvest?",
+                "Rise and SHINE like a golden ear in July sunshine!",
+                "Mornin'! The rooster crowed, the sun's up, and the ledger's waitin'.",
+                "Good afternoon, farmer! The field's been quiet without you.",
+                "Sun's past the silo — afternoon already! Let's see them bags.",
+                "Evenin'! The fireflies are out and so are your token prices.",
+                "Sunset's painting the barn red. Beautiful time to count gains.",
+                "Whoa, burning midnight oil? The corn don't sleep, and neither do I.",
+                "Past midnight and still farming? You're my kind of hustle.",
+                "The dew's still on the leaves and you're already checking bags. Respect.",
+                "High noon! Time to see if these fields are paying their rent.",
+            ],
+
+            unlock: [
+                "Welcome back to the silo! Hope you brought your appetite.",
+                "Key accepted. The barn doors are OPEN, partner.",
+                "PIN correct! You may enter the sacred grain vault.",
+                "Authenticated! Your wallets have been waiting like good little ears.",
+                "Back again! I kept an eye on the corn while you were gone.",
+                "The silo recognizes you. Come on in, take your boots off.",
+                "Access granted. Now let's see if that harvest is still growing.",
+                "Well shuck my husks, it IS you! Welcome home.",
+            ],
+
+            newSilo: [
+                "Fresh silo, fresh start! The grain elevator is now OPEN for business.",
+                "Vault initialized! This bad boy's ready to store some serious wealth.",
+                "New silo created! Your crypto corn has a home now.",
+                "PIN locked in tight as a kernel on the cob. Let's farm.",
+                "Setup complete! Now go get them rAddresses, we got fields to fill.",
+            ],
+
+            lock: [
+                "Locked up tight! Even the crows can't get in now.",
+                "Barn doors LOCKED. Your grains are safe, partner.",
+                "See ya later, farmer! The silo's secured.",
+                "Going offline. Your kernels are under lock and key.",
+                "Silo sealed! Come back when the rooster crows.",
+                "Padlock's on. Nobody's touching your corn tonight.",
+            ],
+
+            addWallet: [
+                (a) => `Plantin' ${a.slice(0,6)} in the east field. Watch it grow! 🌽`,
+                (a) => `New grain in the bin! Scanning ${a.slice(0,6)} for kernel count...`,
+                (a) => `${a.slice(0,6)} just joined the co-op. Welcome to the harvest!`,
+                (a) => `Tossing ${a.slice(0,6)} into the thresher — let's see what shakes out.`,
+                (a) => `Plowing a row for ${a.slice(0,6)}. This could be a good season.`,
+                (a) => `Added ${a.slice(0,6)} to the ledger book. The accountant crow approves.`,
+                (a) => `${a.slice(0,6)} is in the ground. Now we wait for the rain. 🌧️`,
+                (a) => `Sowing ${a.slice(0,6)} into the east forty. Fingers crossed for yield!`,
+                (a) => `Fresh seed in the soil! Analyzing ${a.slice(0,6)} now...`,
+                (a) => `${a.slice(0,6)} — could be a bumper crop. Let the combine roll!`,
+            ],
+
+            removeWallet: [
+                (a) => `Pulled ${a.slice(0,6)} from the ground, roots and all. Gone!`,
+                (a) => `${a.slice(0,6)} has been rotated out. Every good field needs a fallow year.`,
+                (a) => `Sold ${a.slice(0,6)} at the grain elevator. Hope the price was right.`,
+                (a) => `${a.slice(0,6)} has left the silo. May your bags be ever green.`,
+                (a) => `Tractor's hauled ${a.slice(0,6)} away. The field is clear.`,
+                (a) => `${a.slice(0,6)} got the pitchfork. Out you go!`,
+                (a) => `Cleared ${a.slice(0,6)} off the ledger. Row's empty but the barn smells nice.`,
+            ],
+
+            loaded: [
+                (a, xrp) => `${a.slice(0,6)} is STACKED with ${xrp.toFixed(0)} XRP. That's a premium harvest! 🌽🌽🌽`,
+                (a, xrp) => `Holy haybale! ${a.slice(0,6)} has ${xrp.toFixed(0)} XRP in the bin.`,
+                (a, xrp) => `${a.slice(0,6)} — ${xrp.toFixed(0)} XRP. That ain't chicken feed!`,
+                (a, xrp) => `Somebody's been irrigating! ${a.slice(0,6)} looks real healthy.`,
+                (a, xrp) => `The combine just spit out ${xrp.toFixed(0)} XRP for ${a.slice(0,6)}. Not bad, Farmer!`,
+            ],
+
+            light: [
+                (a) => `${a.slice(0,6)} is lighter than a tumbleweed in a drought. Low reserves.`,
+                (a) => `${a.slice(0,6)} — more husks than kernels. The drought hit this one.`,
+                (a) => `${a.slice(0,6)} is scrapin' the bottom of the grain bin. Sparse harvest.`,
+                (a) => `${a.slice(0,6)} needs some rain. The well's almost dry.`,
+            ],
+
+            tokenRich: [
+                (a, count) => `${a.slice(0,6)} is diversified! ${count} tokens — like a full crop rotation.`,
+                (a, count) => `${count} tokens in ${a.slice(0,6)}! This farmer planted EVERYTHING.`,
+                (a, count) => `${a.slice(0,6)} has got ${count} different seeds in the ground. Impressive spread!`,
+            ],
+
+            noTokens: [
+                (a) => `${a.slice(0,6)} is pure XRP. Simple, like a single-crop farm. Nothing wrong with that.`,
+                (a) => `Just XRP in ${a.slice(0,6)}. Sometimes you don't need fancy seeds.`,
+                (a) => `${a.slice(0,6)} — no tokens, just corn. That's the whole harvest.`,
+            ],
+
+            openAccordion: [
+                "Peek inside the bin! Let's count every kernel.",
+                "Opening up the storage bin... smells like gains in here.",
+                "Let's see what crops are in the cellar!",
+                "Cracking open the grain bin — hope it's not just cobwebs.",
+                "The tokens reveal themselves! The harvest ledger opens.",
+                "Unsheathing the husk! Token breakdown incoming.",
+                "Inventory check time. The accountant crow is watching.",
+                "Popping the lid on the grain barrel. What's in here?",
+            ],
+
+            closeAccordion: [
+                "Bin sealed back up. The tokens rest.",
+                "Closing the grain bin — goodnight, little tokens.",
+                "Inventory closed. Back to counting the big XRP numbers.",
+                "Lid's back on. The tokens are tucked in.",
+                "Storage bin locked. Your crops are safe inside.",
+            ],
+
+            invalidAddress: [
+                "That ain't an rAddress — did a crow peck the keyboard?",
+                "Woah there! XRPL addresses start with 'r', not that.",
+                "Nope! That address doesn't start with 'r'. Nice try, scarecrow.",
+                "Invalid address! Even my rooster could tell that ain't right.",
+                "The grain elevator rejected that address. Try one that starts with 'r'.",
+                "That address is faker than plastic corn. Must start with 'r'!",
+                "My pig could type a better address. Needs to start with 'r'.",
+            ],
+
+            duplicate: [
+                "Already got that one in the silo! No double-plantin' allowed.",
+                "That wallet's already in the bin! Don't be greedy.",
+                "Duplicate seed detected! We already planted that row.",
+                "That rAddress is already in the inventory. The cow says no.",
+                "This grain is already counted! No duplicate harvests.",
+                "Déjà vu in the barn. That wallet's already here.",
+            ],
+
+            error: [
+                (a) => `${a.slice(0,6)} threw a wrench in the combine. Could be unfunded or offline.`,
+                (a) => `The tractor broke down on ${a.slice(0,6)}. Network issues or bad address.`,
+                (a) => `${a.slice(0,6)} came back empty. Drought? Bad seed? Check the address.`,
+                (a) => `Uh oh! ${a.slice(0,6)} didn't cooperate. The silo API is being ornery.`,
+                (a) => `${a.slice(0,6)} gave me nothing. Could be inactive, could be the rain.`,
+            ],
+
+            themeLight: [
+                "Bright as a field at high noon! Switching to daytime mode.",
+                "Flipped on the barn lights! Light mode activated.",
+                "Whoa — sunlight! Did someone open the silo doors?",
+                "Light mode? You must be a morning farmer.",
+                "Sunshine settings engaged. I can see every kernel now!",
+            ],
+
+            themeDark: [
+                "Dark mode — like the barn at midnight. I like it.",
+                "Lights off! The corn sleeps in the dark.",
+                "Dark mode engaged. Stealth harvesting activated. 🌑",
+                "Back to the shadows. Where all great farmers operate.",
+                "Dim the lanterns. Night farming is real farming.",
+            ],
+
+            idle: [
+                "...you gonna add a wallet or just watch the corn drift by?",
+                "Psst. Paste an rAddress up there. I won't bite.",
+                "This silo ain't gonna fill itself, ya know.",
+                "I've been standing here a while. The crows are starting to stare.",
+                "The combine's warmed up and ready. Waiting on you, boss.",
+                "My pitchfork hand is getting tired of waiting...",
+                "Still here! Just me, the corn, and the eternal wait.",
+                "Fun fact: corn grows about 2 inches a day. Your portfolio could too. Just saying.",
+                "I've counted these corn particles 47 times. Please add a wallet.",
+                "The chickens are getting restless. Something should happen.",
+                "If a scarecrow waits in an empty field, does it make a sound?",
+            ],
+        };
+
+        let idleTimer = null;
 
         function siloTalk(msg) {
             const bubble = document.getElementById('silo-speech');
-            if (bubble) {
-                bubble.style.animation = 'none';
-                bubble.offsetHeight;
-                bubble.style.animation = 'fadeIn 0.5s ease-out';
-                bubble.textContent = msg;
-            }
+            if (!bubble) return;
+            bubble.style.animation = 'none';
+            bubble.offsetHeight;
+            bubble.style.animation = 'fadeIn 0.5s ease-out';
+            bubble.textContent = msg;
+            // Reset idle timer
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => {
+                siloTalk(CORN.pick(CORN.idle));
+            }, 25000 + Math.random() * 20000);
         }
 
         function getTimeGreeting() {
-            const hour = new Date().getHours();
-            if (hour >= 5 && hour < 12) return "Good morning, Corn! Sun's up, time to check the market.";
-            if (hour >= 12 && hour < 17) return "Good afternoon, Corn. Market looks busy today.";
-            if (hour >= 17 && hour < 21) return "Good evening, Corn. Settling in for the nightly tally.";
-            return "Midnight watch, Corn? Keeping those private grains safe.";
+            return CORN.pick(CORN.greetings);
         }
 
         // ── Time-of-day sky engine ────────────────────────────────────────
@@ -577,7 +757,7 @@
             vaultData = [];
             saveVault();
             showScreen('dash');
-            siloTalk(getTimeGreeting());
+            siloTalk(CORN.pick(CORN.newSilo));
             start();
         }
 
@@ -592,7 +772,7 @@
                 vaultData = JSON.parse(dec);
                 currentPin = pin;
                 showScreen('dash');
-                siloTalk(getTimeGreeting());
+                siloTalk(CORN.pick(CORN.unlock));
                 start();
             } catch (e) {
                 document.getElementById('login-err').textContent = "Wrong Silo Key";
@@ -610,11 +790,15 @@
             tokenCache = {};
             showScreen('login');
             document.getElementById('login-pin').value = '';
+            siloTalk(CORN.pick(CORN.lock));
         }
 
         async function start() {
             await fetchPrice();
             render();
+            // Kick off idle chatter if the silo is empty
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(() => siloTalk(CORN.pick(CORN.idle)), 30000);
         }
 
         function addWallets() {
@@ -622,12 +806,12 @@
             if (addr.startsWith('r') && !vaultData.includes(addr)) {
                 vaultData.push(addr);
                 saveVault();
-                siloTalk(`Putting ${addr.slice(0,6)} into the bin. Let's count the harvest.`);
+                siloTalk(CORN.pick(CORN.addWallet)(addr));
                 appendAndFetchWallet(addr);
             } else {
                 if (!addr) return;
-                if (!addr.startsWith('r')) siloTalk("Invalid address — must start with 'r'.");
-                else if (vaultData.includes(addr)) siloTalk("That address is already in the silo.");
+                if (!addr.startsWith('r')) siloTalk(CORN.pick(CORN.invalidAddress));
+                else if (vaultData.includes(addr)) siloTalk(CORN.pick(CORN.duplicate));
             }
             document.getElementById('wallet-input').value = '';
         }
@@ -692,6 +876,13 @@
 
                 pricedTokens.sort((a,b) => b.valXrp - a.valXrp);
 
+                // Mascot reacts to what's in the wallet
+                if (bal >= 5000) siloTalk(CORN.pick(CORN.loaded)(addr, bal));
+                else if (bal < 20) siloTalk(CORN.pick(CORN.light)(addr));
+                else if (activeLines.length >= 5) siloTalk(CORN.pick(CORN.tokenRich)(addr, activeLines.length));
+                else if (activeLines.length === 0) siloTalk(CORN.pick(CORN.noTokens)(addr));
+                else siloTalk(CORN.pick(CORN.addWallet)(addr)); // generic "wallet loaded" reuse
+
                 const card = document.getElementById(`card-${addr}`);
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
@@ -735,6 +926,7 @@
                 `;
             } catch (e) {
                 console.error(`fetchSilo error for ${addr}:`, e);
+                siloTalk(CORN.pick(CORN.error)(addr));
                 const isNetworkError = e instanceof TypeError && e.message.includes('fetch');
                 const msg = isNetworkError
                     ? 'Network error — check your connection.'
@@ -747,7 +939,7 @@
         function removeWallet(addr) {
             vaultData = vaultData.filter(a => a !== addr);
             saveVault();
-            siloTalk(`Removing ${addr.slice(0,6)} from the grain inventory.`);
+            siloTalk(CORN.pick(CORN.removeWallet)(addr));
             render();
         }
 

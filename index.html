@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corn Wallet Silo</title>
+    <title>Corn Wallet Silo - Precision Build</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,6 +14,19 @@
 
     <style>
         :root {
+            --bg-body: #161512;
+            --bg-card: #22201C;
+            --bg-input: #1A1815;
+            --text-main: #F4F1EB;
+            --text-muted: #A39D91;
+            --accent-gold: #FFC82C;
+            --accent-green: #63A375;
+            --accent-red: #E66A66;
+            --border-color: #38352D;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        body.light-mode {
             --bg-body: #F9F7F1;
             --bg-card: #FFFFFF;
             --bg-input: #F3F0E6;
@@ -25,18 +38,9 @@
             --border-color: #E8E4D9;
             --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
         }
-        .dark-mode {
-            --bg-body: #161512;
-            --bg-card: #22201C;
-            --bg-input: #1A1815;
-            --text-main: #F4F1EB;
-            --text-muted: #A39D91;
-            --accent-gold: #FFC82C;
-            --accent-green: #63A375;
-            --accent-red: #E66A66;
-            --border-color: #38352D;
-        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
             background-color: var(--bg-body);
             color: var(--text-main);
@@ -45,18 +49,76 @@
             display: flex;
             flex-direction: column;
             transition: background-color 0.3s;
+            overflow-x: hidden;
         }
+
+        #ambient-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+            transition: background 3s ease;
+        }
+        #sky-layer {
+            position: absolute;
+            inset: 0;
+            transition: background 3s ease;
+        }
+        #sky-orb {
+            position: absolute;
+            border-radius: 50%;
+            transition: left 3s ease, bottom 3s ease, width 3s ease, height 3s ease, background 3s ease, box-shadow 3s ease;
+        }
+        #horizon-glow {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 35%;
+            transition: background 3s ease;
+            pointer-events: none;
+        }
+        #star-canvas {
+            position: absolute;
+            inset: 0;
+            transition: opacity 2s ease;
+        }
+        .sky-cloud {
+            position: absolute;
+            border-radius: 50px;
+            filter: blur(6px);
+            animation: cloudDrift linear infinite;
+            transition: opacity 2s ease;
+        }
+        @keyframes cloudDrift {
+            from { transform: translateX(-20vw); }
+            to   { transform: translateX(115vw); }
+        }
+        .particle {
+            position: absolute;
+            opacity: 0.18;
+            user-select: none;
+            animation: drive linear infinite;
+            z-index: 2;
+        }
+        @keyframes drive {
+            from { transform: translateX(-15vw) rotate(0deg); }
+            to   { transform: translateX(115vw) rotate(10deg); }
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.9; }
+            50%       { opacity: 0.2; }
+        }
+
         header {
             position: sticky; top: 0; z-index: 100;
             background: var(--bg-body);
             border-bottom: 1px solid var(--border-color);
             padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
         }
-        .brand { display: flex; align-items: center; gap: 10px; font-size: 1.4em; font-weight: 700; color: var(--accent-gold); font-family: 'Outfit'; }
+        .brand { display: flex; align-items: center; gap: 10px; font-size: 1.4em; font-weight: 700; color: var(--accent-gold); font-family: 'Outfit'; z-index: 2; }
         
-        main { flex: 1; padding: 20px 24px; width: 100%; max-width: 1200px; margin: 0 auto; }
+        main { flex: 1; padding: 20px 24px; width: 100%; max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
         
-        /* Dialogue Bubble */
         .speech-container {
             margin-bottom: 20px;
             display: flex;
@@ -66,18 +128,16 @@
         }
         .speech-bubble {
             background: var(--accent-gold);
-            color: #fff;
+            color: #161512;
             padding: 12px 20px;
             border-radius: 12px 12px 12px 0;
-            font-weight: 500;
+            font-weight: 600;
             font-size: 0.95em;
             position: relative;
             box-shadow: var(--shadow);
             max-width: 80%;
         }
-        .corn-avatar {
-            font-size: 2.5em;
-        }
+        .corn-avatar { font-size: 2.5em; filter: drop-shadow(0 0 5px rgba(255,200,44,0.3)); }
 
         .auth-card {
             max-width: 400px; margin: 60px auto; text-align: center; padding: 40px;
@@ -89,7 +149,7 @@
             font-weight: 700; font-family: 'Outfit'; margin: 20px auto; outline: none;
         }
         .btn {
-            background: var(--accent-gold); color: #fff; padding: 12px 20px; 
+            background: var(--accent-gold); color: #161512; padding: 12px 20px; 
             border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s;
         }
         .btn:hover { filter: brightness(1.1); }
@@ -113,6 +173,11 @@
         
         .list-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border-color); font-size: 0.8em; align-items: center; }
         .token-icon { width: 24px; height: 24px; border-radius: 50%; background: var(--bg-input); object-fit: cover; }
+
+        /* price source badge */
+        .price-src { font-size: 0.65em; padding: 1px 4px; border-radius: 3px; font-weight: 700; margin-left: 4px; vertical-align: middle; }
+        .price-src.amm  { background: rgba(99,163,117,0.2); color: var(--accent-green); }
+        .price-src.dex  { background: rgba(0,204,255,0.15); color: #00ccff; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .spin { animation: rotation 1s linear infinite; display: inline-block; }
@@ -121,29 +186,37 @@
         .screen.active { display: block; }
     </style>
 </head>
-<body>
+<body class="dark-mode">
+    <div id="ambient-bg">
+        <div id="sky-layer"></div>
+        <canvas id="star-canvas"></canvas>
+        <div id="horizon-glow"></div>
+        <div id="sky-orb"></div>
+        <!-- clouds injected by JS -->
+    </div>
+
     <header>
         <div class="brand"><i class="ph-fill ph-barn"></i> CORN SILO</div>
         <div style="display: flex; gap: 15px; align-items: center;">
-            <div id="price-box" style="font-weight: 600; color: var(--accent-green); font-size: 0.9em;">Syncing...</div>
-            <button class="btn" style="padding: 6px 10px; background: var(--bg-input); color: var(--text-main);" onclick="toggleTheme()"><i class="ph ph-sun"></i></button>
-            <button class="btn" id="lock-btn" style="display:none; background: var(--accent-red); padding: 6px 10px;" onclick="lockApp()"><i class="ph ph-lock"></i></button>
+            <div id="price-box" style="font-weight: 600; color: var(--accent-green); font-size: 0.9em;">Calculating Yield...</div>
+            <button class="btn" style="padding: 6px 10px; background: var(--bg-input); color: var(--text-main);" onclick="toggleTheme()"><i class="ph ph-moon"></i></button>
+            <button class="btn" id="lock-btn" style="display:none; background: var(--accent-red); padding: 6px 10px; color: white;" onclick="lockApp()"><i class="ph ph-lock"></i></button>
         </div>
     </header>
 
     <main>
         <div id="screen-setup" class="screen">
             <div class="auth-card">
-                <h2>Welcome to the Silo</h2>
-                <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 10px;">Corn, set a 6-digit PIN to secure your grains locally.</p>
+                <h2>Initialize Storage</h2>
+                <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 10px;">Set your 6-digit Silo Key.</p>
                 <input type="password" id="setup-pin" class="pin-input" maxlength="6" inputmode="numeric" placeholder="000000">
-                <button class="btn" style="width:100%" onclick="initVault()">Initialize Silo</button>
+                <button class="btn" style="width:100%" onclick="initVault()">Open Silo</button>
             </div>
         </div>
 
         <div id="screen-login" class="screen">
             <div class="auth-card">
-                <h2>Silo is Locked</h2>
+                <h2>Silo Locked</h2>
                 <input type="password" id="login-pin" class="pin-input" maxlength="6" inputmode="numeric">
                 <button class="btn" style="width:100%" onclick="unlockVault()">Unlock Grains</button>
                 <div id="login-err" style="color:var(--accent-red); margin-top:10px; font-size: 0.9em;"></div>
@@ -151,16 +224,15 @@
         </div>
 
         <div id="screen-dash" class="screen">
-            <!-- Dynamic Dialogue -->
             <div class="speech-container">
                 <div class="corn-avatar">🌽</div>
-                <div class="speech-bubble" id="silo-speech">Checking the fields, Corn...</div>
+                <div class="speech-bubble" id="silo-speech">Gathering the harvest data...</div>
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
-                <h1>Grain Management</h1>
+                <h1>Grains</h1>
                 <div style="display:flex; gap:8px; flex-grow:1; max-width:400px;">
-                    <input type="text" id="wallet-input" placeholder="Enter rAddress..." style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--border-color); outline:none; background: var(--bg-input); color: var(--text-main);">
+                    <input type="text" id="wallet-input" placeholder="Paste rAddress..." style="flex:1; padding:8px; border-radius:6px; border:1px solid var(--border-color); outline:none; background: var(--bg-input); color: var(--text-main);">
                     <button class="btn" style="padding: 8px 16px;" onclick="addWallets()">Add</button>
                 </div>
             </div>
@@ -169,21 +241,26 @@
     </main>
 
     <script>
-        const STORAGE_KEY = 'corn_silo_secure_v7';
+        const STORAGE_KEY = 'corn_silo_secure_v9';
         const RPC_URL = "https://xrplcluster.com";
         let vaultData = [];
         let currentPin = '';
         let xrpUsd = 0.0;
+        let tokenCache = {}; // { key: { price, source } }
 
-        function toggleTheme() { document.body.classList.toggle('dark-mode'); }
+        function toggleTheme() { 
+            document.body.classList.toggle('light-mode'); 
+            const isLight = document.body.classList.contains('light-mode');
+            document.querySelector('.ph-moon, .ph-sun').className = isLight ? 'ph ph-sun' : 'ph ph-moon';
+        }
+
         function toggleAcc(el) { el.parentElement.classList.toggle('open'); }
 
-        // Dialogue Helper
         function siloTalk(msg) {
             const bubble = document.getElementById('silo-speech');
             if (bubble) {
                 bubble.style.animation = 'none';
-                bubble.offsetHeight; // trigger reflow
+                bubble.offsetHeight;
                 bubble.style.animation = 'fadeIn 0.5s ease-out';
                 bubble.textContent = msg;
             }
@@ -191,12 +268,145 @@
 
         function getTimeGreeting() {
             const hour = new Date().getHours();
-            if (hour >= 5 && hour < 12) return "Good morning, Corn! Ready for a harvest?";
-            if (hour >= 12 && hour < 17) return "Good afternoon, Corn. How was lunch? Let's check the grains.";
-            if (hour >= 17 && hour < 21) return "Good evening, Corn. The fields are looking stable.";
-            return "Late night grind, Corn? Let's keep these grains safe.";
+            if (hour >= 5 && hour < 12) return "Good morning, Corn! Sun's up, time to check the market.";
+            if (hour >= 12 && hour < 17) return "Good afternoon, Corn. Market looks busy today.";
+            if (hour >= 17 && hour < 21) return "Good evening, Corn. Settling in for the nightly tally.";
+            return "Midnight watch, Corn? Keeping those private grains safe.";
         }
 
+        // ── Time-of-day sky engine ────────────────────────────────────────
+        // Periods: dawn(5-7), morning(7-10), noon(10-14), afternoon(14-17),
+        //          sunset(17-20), dusk(20-21), night(21-5)
+
+        const SKY = {
+            dawn:      { sky: 'linear-gradient(to bottom, #1a0a2e 0%, #6b2d6b 35%, #e8855a 65%, #f5c842 100%)', horizon: 'linear-gradient(to top, rgba(245,180,50,0.5) 0%, transparent 100%)', orb: { bg:'#ffdd88', shadow:'0 0 60px 30px rgba(255,200,80,0.7), 0 0 120px 60px rgba(255,150,30,0.3)', size:60, leftPct:12, bottomPct:5 }, clouds: { opacity:0.5, color:'rgba(255,180,120,0.55)' }, stars: 0.4 },
+            morning:   { sky: 'linear-gradient(to bottom, #5ba3d9 0%, #8dc6e8 40%, #c8e8f5 75%, #fce89a 100%)', horizon: 'linear-gradient(to top, rgba(252,220,80,0.35) 0%, transparent 100%)', orb: { bg:'#fff7a0', shadow:'0 0 50px 25px rgba(255,240,100,0.8), 0 0 100px 50px rgba(255,210,50,0.35)', size:55, leftPct:20, bottomPct:35 }, clouds: { opacity:0.85, color:'rgba(255,255,255,0.7)' }, stars: 0 },
+            noon:      { sky: 'linear-gradient(to bottom, #1a6ebd 0%, #3a9ad9 30%, #7ec8e3 70%, #b0dff0 100%)', horizon: 'linear-gradient(to top, rgba(180,230,255,0.2) 0%, transparent 100%)', orb: { bg:'#fffde0', shadow:'0 0 45px 20px rgba(255,255,180,0.9), 0 0 90px 45px rgba(255,250,100,0.4)', size:52, leftPct:50, bottomPct:72 }, clouds: { opacity:0.9, color:'rgba(255,255,255,0.8)' }, stars: 0 },
+            afternoon: { sky: 'linear-gradient(to bottom, #2080c8 0%, #56aad8 35%, #a0d4ec 70%, #d4eef8 100%)', horizon: 'linear-gradient(to top, rgba(220,240,255,0.2) 0%, transparent 100%)', orb: { bg:'#ffef80', shadow:'0 0 50px 22px rgba(255,240,100,0.8), 0 0 100px 50px rgba(255,210,50,0.3)', size:55, leftPct:75, bottomPct:42 }, clouds: { opacity:0.8, color:'rgba(255,255,255,0.72)' }, stars: 0 },
+            sunset:    { sky: 'linear-gradient(to bottom, #0d1b4b 0%, #7b3060 30%, #d95f2b 58%, #f5a623 80%, #ffd370 100%)', horizon: 'linear-gradient(to top, rgba(255,140,30,0.65) 0%, transparent 100%)', orb: { bg:'#ff8c30', shadow:'0 0 70px 35px rgba(255,120,20,0.75), 0 0 130px 70px rgba(255,60,0,0.3)', size:65, leftPct:85, bottomPct:8 }, clouds: { opacity:0.75, color:'rgba(255,120,80,0.6)' }, stars: 0.15 },
+            dusk:      { sky: 'linear-gradient(to bottom, #060d1f 0%, #1a1040 40%, #4a1e5a 70%, #9b3c2e 100%)', horizon: 'linear-gradient(to top, rgba(155,60,46,0.5) 0%, transparent 100%)', orb: { bg:'#e0c0ff', shadow:'0 0 55px 25px rgba(200,160,255,0.5), 0 0 110px 55px rgba(150,100,255,0.25)', size:42, leftPct:88, bottomPct:3 }, clouds: { opacity:0.3, color:'rgba(180,120,200,0.35)' }, stars: 0.7 },
+            night:     { sky: 'linear-gradient(to bottom, #020510 0%, #050d1f 50%, #0a1628 100%)', horizon: 'linear-gradient(to top, rgba(10,30,60,0.4) 0%, transparent 100%)', orb: { bg:'#e8f0ff', shadow:'0 0 35px 15px rgba(200,220,255,0.4), 0 0 70px 35px rgba(150,180,255,0.15)', size:38, leftPct:65, bottomPct:65 }, clouds: { opacity:0, color:'transparent' }, stars: 1.0 },
+        };
+
+        function getTimeOfDay() {
+            const h = new Date().getHours();
+            if (h >= 5  && h < 7)  return 'dawn';
+            if (h >= 7  && h < 10) return 'morning';
+            if (h >= 10 && h < 14) return 'noon';
+            if (h >= 14 && h < 17) return 'afternoon';
+            if (h >= 17 && h < 20) return 'sunset';
+            if (h >= 20 && h < 21) return 'dusk';
+            return 'night';
+        }
+
+        let starEls = [];
+
+        function buildStars(canvas) {
+            const ctx = canvas.getContext('2d');
+            canvas.width  = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            starEls = [];
+            for (let i = 0; i < 180; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height * 0.78;
+                const r = Math.random() * 1.4 + 0.3;
+                // Draw as a DOM span so we can animate twinkle via CSS
+                const star = document.createElement('div');
+                star.style.cssText = `
+                    position:absolute;
+                    left:${x}px; top:${y}px;
+                    width:${r*2}px; height:${r*2}px;
+                    border-radius:50%;
+                    background:white;
+                    animation: twinkle ${(Math.random()*2.5+1).toFixed(1)}s ease-in-out infinite;
+                    animation-delay: ${(Math.random()*3).toFixed(1)}s;
+                    transition: opacity 2s ease;
+                `;
+                star.classList.add('star-dot');
+                document.getElementById('ambient-bg').appendChild(star);
+                starEls.push(star);
+            }
+        }
+
+        function applySkyState(tod) {
+            const cfg = SKY[tod];
+
+            // Sky gradient
+            document.getElementById('sky-layer').style.background = cfg.sky;
+
+            // Horizon glow
+            document.getElementById('horizon-glow').style.background = cfg.horizon;
+
+            // Orb (sun or moon)
+            const orb = document.getElementById('sky-orb');
+            orb.style.width        = cfg.orb.size + 'px';
+            orb.style.height       = cfg.orb.size + 'px';
+            orb.style.left         = cfg.orb.leftPct + '%';
+            orb.style.bottom       = cfg.orb.bottomPct + '%';
+            orb.style.background   = cfg.orb.bg;
+            orb.style.boxShadow    = cfg.orb.shadow;
+            // 3-D look: radial highlight
+            orb.style.backgroundImage = `radial-gradient(circle at 35% 35%, rgba(255,255,255,0.85) 0%, transparent 60%), radial-gradient(circle, ${cfg.orb.bg} 60%, transparent 100%)`;
+
+            // Stars opacity
+            document.querySelectorAll('.star-dot').forEach(s => {
+                s.style.opacity = cfg.stars;
+            });
+
+            // Clouds
+            document.querySelectorAll('.sky-cloud').forEach(c => {
+                c.style.opacity = cfg.clouds.opacity;
+                c.style.background = cfg.clouds.color;
+            });
+        }
+
+        function initAmbient() {
+            const bg = document.getElementById('ambient-bg');
+
+            // Build stars (DOM divs for CSS twinkle)
+            buildStars(document.getElementById('star-canvas'));
+
+            // Build clouds
+            const cloudCfg = [
+                { top:'8%',  height:28, width:160, dur:55, delay:0   },
+                { top:'15%', height:22, width:120, dur:70, delay:-20  },
+                { top:'22%', height:18, width:90,  dur:90, delay:-45  },
+                { top:'12%', height:30, width:200, dur:65, delay:-10  },
+                { top:'28%', height:16, width:110, dur:80, delay:-60  },
+            ];
+            cloudCfg.forEach(c => {
+                const cloud = document.createElement('div');
+                cloud.className = 'sky-cloud';
+                cloud.style.top    = c.top;
+                cloud.style.height = c.height + 'px';
+                cloud.style.width  = c.width  + 'px';
+                cloud.style.animationDuration = c.dur + 's';
+                cloud.style.animationDelay    = c.delay + 's';
+                bg.appendChild(cloud);
+            });
+
+            // Apply current time state
+            applySkyState(getTimeOfDay());
+
+            // Corn / harvest particles on top
+            const items = ['🌽', '🌾', '🚜', '🍂', '🌽'];
+            for (let i = 0; i < 10; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.textContent = items[Math.floor(Math.random() * items.length)];
+                p.style.top              = (Math.random() * 85 + 5) + 'vh';
+                p.style.fontSize         = (Math.random() * 15 + 18) + 'px';
+                p.style.animationDuration = (Math.random() * 15 + 25) + 's';
+                p.style.animationDelay    = (Math.random() * -30) + 's';
+                bg.appendChild(p);
+            }
+
+            // Re-check every 5 minutes in case the page stays open across a period change
+            setInterval(() => applySkyState(getTimeOfDay()), 5 * 60 * 1000);
+        }
+
+        // ── JSON-RPC helper ──
         async function rpc(method, params) {
             try {
                 const response = await fetch(RPC_URL, {
@@ -209,40 +419,148 @@
             } catch (e) { return null; }
         }
 
+        // ── XRP/USD price — CoinGecko primary, Binance fallback ──
+        // Ported from XRPMan Multi-Wallet Suite v4.7.1 fetchXrpUsdPrice()
         async function fetchPrice() {
+            // Primary: CoinGecko
             try {
                 const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ripple&vs_currencies=usd');
                 const data = await res.json();
-                xrpUsd = data.ripple.usd;
-                document.getElementById('price-box').textContent = `XRP: $${xrpUsd.toFixed(4)}`;
-            } catch (e) {
-                try {
-                    const res2 = await fetch('https://min-api.cryptocompare.com/data/price?fsym=XRP&tsyms=USD');
-                    const data2 = await res2.json();
-                    xrpUsd = data2.USD;
+                if (data.ripple?.usd) {
+                    xrpUsd = data.ripple.usd;
                     document.getElementById('price-box').textContent = `XRP: $${xrpUsd.toFixed(4)}`;
-                } catch (e2) {
-                    document.getElementById('price-box').textContent = "XRP: Offline";
+                    return;
                 }
-            }
+                throw new Error('no data');
+            } catch {}
+
+            // Fallback: Binance XRPUSDT ticker
+            try {
+                const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=XRPUSDT');
+                const data = await res.json();
+                if (data.price) {
+                    xrpUsd = parseFloat(data.price);
+                    document.getElementById('price-box').textContent = `XRP: $${xrpUsd.toFixed(4)}`;
+                    return;
+                }
+            } catch {}
+
+            document.getElementById('price-box').textContent = "XRP: Offline";
         }
 
+        // ── Token price in XRP — AMM primary, DEX orderbook fallback ──
+        // Logic ported from XRPMan Multi-Wallet Suite v4.7.1:
+        //   MKT.pool()  → amm_info AMM price
+        //   MKT.book()  → book_offers bid/ask midpoint
+        //   wmFetchTokenPrices() → AMM first, cross-ref/average with ob within 20%
         async function getTokenPrice(currency, issuer) {
+            const key = `${currency}:${issuer}`;
+            if (tokenCache[key] !== undefined) return tokenCache[key];
+
+            let ammPrice = 0;
+            let obPrice  = 0;
+
+            // ── 1. AMM pool (most accurate when it exists) ──
             try {
-                const res = await rpc('amm_info', { asset: { currency, issuer }, asset2: { currency: 'XRP' } });
-                if (!res || !res.amm) return 0;
-                let xrp, tok;
-                const amt1 = res.amm.amount;
-                const amt2 = res.amm.amount2;
-                if (typeof amt1 === 'string') {
-                    xrp = parseInt(amt1) / 1e6;
-                    tok = parseFloat(amt2.value);
-                } else {
-                    xrp = parseInt(amt2) / 1e6;
-                    tok = parseFloat(amt1.value);
+                const res = await rpc('amm_info', {
+                    asset:  { currency, issuer },
+                    asset2: { currency: 'XRP' }
+                });
+
+                if (res && res.amm) {
+                    let xrpAmount = 0, tokenAmount = 0;
+                    const a1 = res.amm.amount;   // whichever side XRPL put XRP on
+                    const a2 = res.amm.amount2;
+
+                    // Drops string = XRP side; object = token side
+                    if (typeof a1 === 'string') {
+                        xrpAmount   = parseFloat(a1) / 1_000_000;
+                        tokenAmount = (a2 && typeof a2 === 'object') ? parseFloat(a2.value) : 0;
+                    } else if (typeof a2 === 'string') {
+                        xrpAmount   = parseFloat(a2) / 1_000_000;
+                        tokenAmount = (a1 && typeof a1 === 'object') ? parseFloat(a1.value) : 0;
+                    }
+
+                    ammPrice = tokenAmount > 0 ? xrpAmount / tokenAmount : 0;
                 }
-                return tok > 0 ? xrp / tok : 0;
-            } catch (e) { return 0; }
+            } catch {}
+
+            // ── 2. DEX orderbook fallback (for tokens with no AMM) ──
+            //    Also used to cross-reference the AMM price
+            try {
+                // Bid side: taker gets XRP, pays token → people buying the token
+                const bidRes = await rpc('book_offers', {
+                    taker_gets: { currency: 'XRP' },
+                    taker_pays: { currency, issuer },
+                    limit: 8
+                });
+                const bidOffers = (bidRes && bidRes.offers) ? bidRes.offers : [];
+
+                // Ask side: taker gets token, pays XRP → people selling the token
+                const askRes = await rpc('book_offers', {
+                    taker_gets: { currency, issuer },
+                    taker_pays: { currency: 'XRP' },
+                    limit: 8
+                });
+                const askOffers = (askRes && askRes.offers) ? askRes.offers : [];
+
+                // Weighted average across visible offers (volume-weighted, not just top of book)
+                let bidPrice = 0, askPrice = 0;
+
+                if (bidOffers.length) {
+                    let tXrp = 0, tTok = 0;
+                    for (const ob of bidOffers) {
+                        const xrp = typeof ob.TakerGets === 'string'
+                            ? parseFloat(ob.TakerGets) / 1_000_000
+                            : parseFloat(ob.TakerGets?.value || 0);
+                        const tok = typeof ob.TakerPays === 'string'
+                            ? parseFloat(ob.TakerPays) / 1_000_000
+                            : parseFloat(ob.TakerPays?.value || 0);
+                        if (xrp > 0 && tok > 0) { tXrp += xrp; tTok += tok; }
+                    }
+                    if (tTok > 0) bidPrice = tXrp / tTok;
+                }
+
+                if (askOffers.length) {
+                    let tXrp = 0, tTok = 0;
+                    for (const ob of askOffers) {
+                        const xrp = typeof ob.TakerPays === 'string'
+                            ? parseFloat(ob.TakerPays) / 1_000_000
+                            : parseFloat(ob.TakerPays?.value || 0);
+                        const tok = typeof ob.TakerGets === 'string'
+                            ? parseFloat(ob.TakerGets) / 1_000_000
+                            : parseFloat(ob.TakerGets?.value || 0);
+                        if (xrp > 0 && tok > 0) { tXrp += xrp; tTok += tok; }
+                    }
+                    if (tTok > 0) askPrice = tXrp / tTok;
+                }
+
+                // Mid-point of bid/ask spread
+                if (bidPrice > 0 && askPrice > 0) obPrice = (bidPrice + askPrice) / 2;
+                else obPrice = bidPrice || askPrice;
+
+            } catch {}
+
+            // ── 3. Resolve final price ──
+            // AMM is primary. If orderbook is within 20% of AMM, average them (tighter estimate).
+            // If only one source exists, use it. Record which source for the badge display.
+            let finalPrice = 0;
+            let source = 'none';
+
+            if (ammPrice > 0 && obPrice > 0) {
+                const spread = Math.abs(obPrice - ammPrice) / ammPrice;
+                finalPrice = spread < 0.20 ? (ammPrice + obPrice) / 2 : ammPrice;
+                source = 'amm';
+            } else if (ammPrice > 0) {
+                finalPrice = ammPrice;
+                source = 'amm';
+            } else if (obPrice > 0) {
+                finalPrice = obPrice;
+                source = 'dex';
+            }
+
+            tokenCache[key] = { price: finalPrice, source };
+            return tokenCache[key];
         }
 
         function showScreen(id) {
@@ -277,7 +595,7 @@
                 siloTalk(getTimeGreeting());
                 start();
             } catch (e) {
-                document.getElementById('login-err').textContent = "Invalid PIN";
+                document.getElementById('login-err').textContent = "Wrong Silo Key";
             }
         }
 
@@ -289,6 +607,7 @@
 
         function lockApp() {
             currentPin = '';
+            tokenCache = {};
             showScreen('login');
             document.getElementById('login-pin').value = '';
         }
@@ -303,12 +622,24 @@
             if (addr.startsWith('r') && !vaultData.includes(addr)) {
                 vaultData.push(addr);
                 saveVault();
-                siloTalk(`Adding ${addr.slice(0,6)}... to the bin. Harvesting data now.`);
-                render();
-            } else if (vaultData.includes(addr)) {
-                siloTalk("Corn, we've already got that one in the bin!");
+                siloTalk(`Putting ${addr.slice(0,6)} into the bin. Let's count the harvest.`);
+                appendAndFetchWallet(addr);
+            } else {
+                if (!addr) return;
+                if (!addr.startsWith('r')) siloTalk("Invalid address — must start with 'r'.");
+                else if (vaultData.includes(addr)) siloTalk("That address is already in the silo.");
             }
             document.getElementById('wallet-input').value = '';
+        }
+
+        function appendAndFetchWallet(addr) {
+            const grid = document.getElementById('silo-grid');
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.id = `card-${addr}`;
+            card.innerHTML = `<div style="text-align:center; padding:20px;"><i class="ph ph-spinner spin"></i> Analyzing...</div>`;
+            grid.appendChild(card);
+            fetchSilo(addr);
         }
 
         function render() {
@@ -318,7 +649,7 @@
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.id = `card-${addr}`;
-                card.innerHTML = `<div style="text-align:center; padding:20px;"><i class="ph ph-spinner spin"></i> Fetching...</div>`;
+                card.innerHTML = `<div style="text-align:center; padding:20px;"><i class="ph ph-spinner spin"></i> Analyzing...</div>`;
                 grid.appendChild(card);
                 fetchSilo(addr);
             });
@@ -327,22 +658,36 @@
         async function fetchSilo(addr) {
             try {
                 const info = await rpc('account_info', { account: addr, ledger_index: 'validated' });
-                if (!info) throw new Error();
-                const lines = await rpc('account_lines', { account: addr });
+                if (!info || !info.account_data) throw new Error("Account Not Found");
                 
-                const bal = parseInt(info.account_data.Balance) / 1e6;
+                // Paginate account_lines — XRPL caps results (often ~200); loop until no marker
+                let allLines = [];
+                let marker = undefined;
+                do {
+                    const params = { account: addr, ledger_index: 'validated', limit: 400 };
+                    if (marker) params.marker = marker;
+                    const lines = await rpc('account_lines', params);
+                    if (!lines) break;
+                    allLines = allLines.concat(lines.lines || []);
+                    marker = lines.marker;
+                } while (marker);
+                const bal = parseInt(info.account_data.Balance) / 1_000_000;
                 const objs = info.account_data.OwnerCount || 0;
                 
-                const reserve = 1 + (objs * 0.2);
+                const reserve = 10 + (objs * 2); 
                 const spendable = Math.max(0, bal - reserve);
                 let totalXrpValue = bal;
 
-                const activeLines = (lines && lines.lines) ? lines.lines.filter(l => parseFloat(l.balance) > 0) : [];
+                const activeLines = allLines.filter(l => parseFloat(l.balance) > 0);
+                
+                // Fetch token prices — each returns { price, source }
                 const pricedTokens = await Promise.all(activeLines.map(async l => {
-                    const price = await getTokenPrice(l.currency, l.account);
-                    const valXrp = parseFloat(l.balance) * price;
+                    const result = await getTokenPrice(l.currency, l.account);
+                    const priceInXrp = result ? result.price : 0;
+                    const priceSource = result ? result.source : 'none';
+                    const valXrp = parseFloat(l.balance) * priceInXrp;
                     totalXrpValue += valXrp;
-                    return { ...l, valXrp };
+                    return { ...l, valXrp, priceInXrp, priceSource };
                 }));
 
                 pricedTokens.sort((a,b) => b.valXrp - a.valXrp);
@@ -354,11 +699,11 @@
                         <i class="ph-fill ph-check-circle" style="color:var(--accent-green)"></i>
                     </div>
                     <div class="silo-bal">${bal.toLocaleString(undefined, {minimumFractionDigits:2})} <span>XRP</span></div>
-                    <div class="silo-usd">$${(totalXrpValue * xrpUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+                    <div class="silo-usd">$${(totalXrpValue * xrpUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} TOTAL</div>
                     
                     <div class="silo-stats">
-                        <div class="stat-col"><span class="stat-lbl">Spendable</span><span class="stat-val">${spendable.toFixed(2)}</span></div>
-                        <div class="stat-col"><span class="stat-lbl">Reserved</span><span class="stat-val">${reserve.toFixed(2)}</span></div>
+                        <div class="stat-col"><span class="stat-lbl">Available</span><span class="stat-val">${spendable.toFixed(2)}</span></div>
+                        <div class="stat-col"><span class="stat-lbl">Reserve</span><span class="stat-val">${reserve.toFixed(2)}</span></div>
                     </div>
 
                     <div class="accordion">
@@ -366,12 +711,15 @@
                         <div class="acc-body">
                             ${pricedTokens.map(t => {
                                 const avatar = `https://xumm.app/avatar/${t.account}_200.png`;
+                                const srcBadge = t.priceSource !== 'none'
+                                    ? `<span class="price-src ${t.priceSource}">${t.priceSource.toUpperCase()}</span>`
+                                    : '';
                                 return `
                                 <div class="list-row">
                                     <div style="display:flex; align-items:center; gap:10px;">
                                         <img src="${avatar}" class="token-icon" onerror="this.onerror=null;this.src='https://via.placeholder.com/24?text=${t.currency[0]}'">
                                         <div>
-                                            <strong>${t.currency.length > 3 ? 'TOKEN' : t.currency}</strong><br>
+                                            <strong>${t.currency.length > 3 ? 'TOKEN' : t.currency}</strong>${srcBadge}<br>
                                             <small style="color:var(--text-muted); font-size:0.8em;">${parseFloat(t.balance).toLocaleString()}</small>
                                         </div>
                                     </div>
@@ -380,28 +728,34 @@
                                         <small style="font-size:0.7em;">${t.valXrp.toFixed(2)} XRP</small>
                                     </div>
                                 </div>`;
-                            }).join('') || '<div class="list-row">Silo Empty</div>'}
+                            }).join('') || '<div class="list-row">No tokens found</div>'}
                         </div>
                     </div>
                     <button onclick="removeWallet('${addr}')" style="position:absolute; top:5px; right:5px; background:none; border:none; color:var(--accent-red); cursor:pointer; opacity:0.3; font-size:1.4em;">&times;</button>
                 `;
             } catch (e) {
-                document.getElementById(`card-${addr}`).innerHTML = `<div style="padding:20px; text-align:center; color:var(--accent-red);">Unfunded / Address Error</div>`;
+                console.error(`fetchSilo error for ${addr}:`, e);
+                const isNetworkError = e instanceof TypeError && e.message.includes('fetch');
+                const msg = isNetworkError
+                    ? 'Network error — check your connection.'
+                    : (e.message || 'Address unfunded, inactive, or request failed.');
+                document.getElementById(`card-${addr}`).innerHTML =
+                    `<div style="padding:20px; text-align:center; color:var(--accent-red); font-size: 0.8em;">${msg}</div>`;
             }
         }
 
         function removeWallet(addr) {
             vaultData = vaultData.filter(a => a !== addr);
             saveVault();
-            siloTalk(`Removed wallet ${addr.slice(0,6)}... Corn, that's one less to watch.`);
+            siloTalk(`Removing ${addr.slice(0,6)} from the grain inventory.`);
             render();
         }
 
         window.onload = () => {
+            initAmbient();
             if (localStorage.getItem(STORAGE_KEY)) showScreen('login');
             else showScreen('setup');
         };
     </script>
 </body>
 </html>
-}

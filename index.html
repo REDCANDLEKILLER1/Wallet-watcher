@@ -11,6 +11,7 @@
     
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
 
     <style>
         :root {
@@ -178,12 +179,95 @@
         .price-src { font-size: 0.65em; padding: 1px 4px; border-radius: 3px; font-weight: 700; margin-left: 4px; vertical-align: middle; }
         .price-src.amm  { background: rgba(99,163,117,0.2); color: var(--accent-green); }
         .price-src.dex  { background: rgba(0,204,255,0.15); color: #00ccff; }
+        .price-src.lp   { background: rgba(180,100,255,0.2); color: #c084ff; }
+
+        .lp-pool-row {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.8em;
+            background: linear-gradient(90deg, rgba(180,100,255,0.04) 0%, transparent 100%);
+        }
+        .lp-pool-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+        }
+        .lp-pool-assets {
+            display: flex; gap: 8px; flex-wrap: wrap;
+        }
+        .lp-asset-pill {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .spin { animation: rotation 1s linear infinite; display: inline-block; }
         @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .screen { display: none; }
         .screen.active { display: block; }
+
+        /* ── Totals Banner ── */
+        #totals-banner {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 18px 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            animation: fadeIn 0.4s ease-out;
+        }
+        .totals-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            min-width: 110px;
+        }
+        .totals-lbl {
+            font-size: 0.68em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            margin-bottom: 4px;
+        }
+        .totals-val {
+            font-family: 'Outfit'; font-weight: 700;
+            font-size: 1.35em;
+            color: var(--text-main);
+        }
+        .totals-val.gold  { color: var(--accent-gold); }
+        .totals-val.green { color: var(--accent-green); }
+        .totals-divider {
+            width: 1px; height: 40px;
+            background: var(--border-color);
+            flex-shrink: 0;
+        }
+        #report-btn {
+            background: var(--accent-gold);
+            color: #161512;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-weight: 700;
+            font-size: 0.85em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            white-space: nowrap;
+            transition: filter 0.2s;
+            flex-shrink: 0;
+        }
+        #report-btn:hover { filter: brightness(1.1); }
+        #report-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body class="dark-mode">
@@ -229,6 +313,37 @@
                 <div class="speech-bubble" id="silo-speech">Gathering the harvest data...</div>
             </div>
 
+            <!-- Totals Banner -->
+            <div id="totals-banner">
+                <div class="totals-col">
+                    <span class="totals-lbl">🌽 Wallets</span>
+                    <span class="totals-val" id="tot-wallets">—</span>
+                </div>
+                <div class="totals-divider"></div>
+                <div class="totals-col">
+                    <span class="totals-lbl">Total XRP</span>
+                    <span class="totals-val gold" id="tot-xrp">—</span>
+                </div>
+                <div class="totals-divider"></div>
+                <div class="totals-col">
+                    <span class="totals-lbl">Token Value (XRP)</span>
+                    <span class="totals-val" id="tot-token-xrp">—</span>
+                </div>
+                <div class="totals-divider"></div>
+                <div class="totals-col">
+                    <span class="totals-lbl">Combined USD</span>
+                    <span class="totals-val green" id="tot-usd">—</span>
+                </div>
+                <div class="totals-divider"></div>
+                <div class="totals-col">
+                    <span class="totals-lbl">Spendable XRP</span>
+                    <span class="totals-val" id="tot-spendable">—</span>
+                </div>
+                <button id="report-btn" onclick="downloadReport()">
+                    <i class="ph ph-file-doc"></i> Download Report
+                </button>
+            </div>
+
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
                 <h1>Grains</h1>
                 <div style="display:flex; gap:8px; flex-grow:1; max-width:400px;">
@@ -247,6 +362,22 @@
         let currentPin = '';
         let xrpUsd = 0.0;
         let tokenCache = {}; // { key: { price, source } }
+        let walletSnapshots = {}; // addr → { bal, spendable, reserve, totalXrpValue, tokenXrpValue, pricedTokens }
+
+        function updateTotals() {
+            const snaps = Object.values(walletSnapshots);
+            if (!snaps.length) return;
+            const totalXrp      = snaps.reduce((s, w) => s + w.bal, 0);
+            const totalTokenXrp = snaps.reduce((s, w) => s + w.tokenXrpValue, 0);
+            const totalSpend    = snaps.reduce((s, w) => s + w.spendable, 0);
+            const totalUsd      = snaps.reduce((s, w) => s + w.totalXrpValue, 0) * xrpUsd;
+
+            document.getElementById('tot-wallets').textContent     = snaps.length;
+            document.getElementById('tot-xrp').textContent         = totalXrp.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+            document.getElementById('tot-token-xrp').textContent   = totalTokenXrp.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+            document.getElementById('tot-usd').textContent         = '$' + totalUsd.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+            document.getElementById('tot-spendable').textContent   = totalSpend.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+        }
 
         function toggleTheme() { 
             document.body.classList.toggle('light-mode'); 
@@ -827,6 +958,7 @@
         }
 
         function render() {
+            walletSnapshots = {};
             const grid = document.getElementById('silo-grid');
             grid.innerHTML = '';
             vaultData.forEach(addr => {
@@ -839,12 +971,82 @@
             });
         }
 
+        // ── Decode a currency code: hex→UTF8 if possible, else short hex label ──
+        function decodeCurrency(hex) {
+            if (!hex || hex.length <= 3) return hex; // already 3-char
+            if (hex.startsWith('03')) return null;   // LP token — handled separately
+            try {
+                const bytes = hex.match(/.{1,2}/g).map(b => parseInt(b, 16));
+                const str = bytes.map(b => String.fromCharCode(b)).join('').replace(/\0/g, '').trim();
+                if (str && /^[\x20-\x7E]+$/.test(str)) return str;
+            } catch {}
+            return hex.slice(0,6) + '…';
+        }
+
+        // ── Resolve AMM pool info from LP token issuer (the AMM account) ──
+        async function resolveAmmPool(lpIssuer, lpBalance, lpTotalSupply) {
+            try {
+                const res = await rpc('amm_info', { amm_account: lpIssuer, ledger_index: 'validated' });
+                if (!res || !res.amm) return null;
+                const amm = res.amm;
+
+                // Parse both pool sides
+                const a1 = amm.amount;
+                const a2 = amm.amount2;
+                const pool1Amt = typeof a1 === 'string' ? parseFloat(a1) / 1_000_000 : parseFloat(a1?.value || 0);
+                const pool2Amt = typeof a2 === 'string' ? parseFloat(a2) / 1_000_000 : parseFloat(a2?.value || 0);
+                const cur1    = typeof a1 === 'string' ? 'XRP' : decodeCurrency(a1?.currency) || a1?.currency || '?';
+                const cur2    = typeof a2 === 'string' ? 'XRP' : decodeCurrency(a2?.currency) || a2?.currency || '?';
+                const iss1    = typeof a1 === 'string' ? null : a1?.issuer;
+                const iss2    = typeof a2 === 'string' ? null : a2?.issuer;
+
+                // LP total supply from amm_info
+                const totalLp = parseFloat(amm.lp_token?.value || lpTotalSupply || 1);
+                const share   = totalLp > 0 ? lpBalance / totalLp : 0;
+
+                // Wallet's share of each pool asset
+                const myAmt1 = pool1Amt * share;
+                const myAmt2 = pool2Amt * share;
+
+                // Value in XRP: price each side
+                let xrpVal = 0;
+                if (cur1 === 'XRP') {
+                    xrpVal += myAmt1;
+                    if (cur2 !== 'XRP' && iss2) {
+                        const p = await getTokenPrice(a2.currency, iss2);
+                        xrpVal += myAmt2 * (p ? p.price : 0);
+                    } else {
+                        xrpVal += myAmt2;
+                    }
+                } else if (cur2 === 'XRP') {
+                    xrpVal += myAmt2;
+                    if (iss1) {
+                        const p = await getTokenPrice(a1.currency, iss1);
+                        xrpVal += myAmt1 * (p ? p.price : 0);
+                    }
+                } else {
+                    // token/token pool — price both
+                    if (iss1) { const p = await getTokenPrice(a1.currency, iss1); xrpVal += myAmt1 * (p ? p.price : 0); }
+                    if (iss2) { const p = await getTokenPrice(a2.currency, iss2); xrpVal += myAmt2 * (p ? p.price : 0); }
+                }
+
+                return {
+                    ammAccount: lpIssuer,
+                    cur1, cur2, iss1, iss2,
+                    pool1Amt, pool2Amt,
+                    myAmt1, myAmt2,
+                    share, xrpVal,
+                    fee: (amm.trading_fee || 0) / 1000,
+                };
+            } catch { return null; }
+        }
+
         async function fetchSilo(addr) {
             try {
                 const info = await rpc('account_info', { account: addr, ledger_index: 'validated' });
                 if (!info || !info.account_data) throw new Error("Account Not Found");
-                
-                // Paginate account_lines — XRPL caps results (often ~200); loop until no marker
+
+                // Paginate account_lines
                 let allLines = [];
                 let marker = undefined;
                 do {
@@ -855,17 +1057,40 @@
                     allLines = allLines.concat(lines.lines || []);
                     marker = lines.marker;
                 } while (marker);
-                const bal = parseInt(info.account_data.Balance) / 1_000_000;
-                const objs = info.account_data.OwnerCount || 0;
-                
-                const reserve = 10 + (objs * 2); 
+
+                const bal   = parseInt(info.account_data.Balance) / 1_000_000;
+                const objs  = info.account_data.OwnerCount || 0;
+                const reserve   = 10 + (objs * 2);
                 const spendable = Math.max(0, bal - reserve);
                 let totalXrpValue = bal;
 
-                const activeLines = allLines.filter(l => parseFloat(l.balance) > 0);
-                
-                // Fetch token prices — each returns { price, source }
-                const pricedTokens = await Promise.all(activeLines.map(async l => {
+                // ── Split lines into LP tokens vs regular tokens ──
+                const lpLines      = allLines.filter(l => l.currency?.startsWith('03') && parseFloat(l.balance) > 0);
+                const regularLines = allLines.filter(l => !l.currency?.startsWith('03') && parseFloat(l.balance) > 0);
+
+                // ── Fetch open DEX offers (may hold tokens not in trust lines) ──
+                let offerTokens = [];
+                try {
+                    const offersRes = await rpc('account_offers', { account: addr, ledger_index: 'validated', limit: 400 });
+                    const offers = offersRes?.offers || [];
+                    for (const o of offers) {
+                        // taker_gets is what the wallet is offering to give away (so it owns it)
+                        const tg = o.taker_gets;
+                        if (tg && typeof tg === 'object' && tg.currency && tg.value) {
+                            const cur = decodeCurrency(tg.currency) || tg.currency;
+                            // Only add if not already in regular trust lines
+                            const alreadyIn = regularLines.some(l => l.currency === tg.currency && l.account === tg.issuer);
+                            if (!alreadyIn && parseFloat(tg.value) > 0) {
+                                offerTokens.push({ currency: tg.currency, account: tg.issuer, balance: tg.value, _fromOffer: true });
+                            }
+                        }
+                    }
+                } catch {}
+
+                const allRegular = [...regularLines, ...offerTokens];
+
+                // ── Price regular tokens ──
+                const pricedTokens = await Promise.all(allRegular.map(async l => {
                     const result = await getTokenPrice(l.currency, l.account);
                     const priceInXrp = result ? result.price : 0;
                     const priceSource = result ? result.source : 'none';
@@ -873,56 +1098,109 @@
                     totalXrpValue += valXrp;
                     return { ...l, valXrp, priceInXrp, priceSource };
                 }));
+                pricedTokens.sort((a, b) => b.valXrp - a.valXrp);
 
-                pricedTokens.sort((a,b) => b.valXrp - a.valXrp);
+                // ── Resolve LP / AMM pool positions ──
+                const ammPools = await Promise.all(lpLines.map(async l => {
+                    const pool = await resolveAmmPool(l.account, parseFloat(l.balance), null);
+                    if (pool) { totalXrpValue += pool.xrpVal; }
+                    return pool ? { ...pool, lpBalance: parseFloat(l.balance) } : null;
+                }));
+                const resolvedPools = ammPools.filter(Boolean);
 
-                // Mascot reacts to what's in the wallet
+                // Store snapshot
+                const tokenXrpValue = pricedTokens.reduce((s, t) => s + t.valXrp, 0)
+                                    + resolvedPools.reduce((s, p) => s + p.xrpVal, 0);
+                walletSnapshots[addr] = { bal, spendable, reserve, totalXrpValue, tokenXrpValue, pricedTokens, activeLines: allRegular, ammPools: resolvedPools };
+                updateTotals();
+
+                // Mascot
                 if (bal >= 5000) siloTalk(CORN.pick(CORN.loaded)(addr, bal));
                 else if (bal < 20) siloTalk(CORN.pick(CORN.light)(addr));
-                else if (activeLines.length >= 5) siloTalk(CORN.pick(CORN.tokenRich)(addr, activeLines.length));
-                else if (activeLines.length === 0) siloTalk(CORN.pick(CORN.noTokens)(addr));
-                else siloTalk(CORN.pick(CORN.addWallet)(addr)); // generic "wallet loaded" reuse
+                else if (resolvedPools.length > 0) siloTalk(`${addr.slice(0,6)} is in the liquidity pool game! ${resolvedPools.length} AMM position${resolvedPools.length>1?'s':''} detected. Fancy farmer! 🌊🌽`);
+                else if (allRegular.length >= 5) siloTalk(CORN.pick(CORN.tokenRich)(addr, allRegular.length));
+                else if (allRegular.length === 0 && resolvedPools.length === 0) siloTalk(CORN.pick(CORN.noTokens)(addr));
+                else siloTalk(CORN.pick(CORN.addWallet)(addr));
 
+                // ── Render card ──
                 const card = document.getElementById(`card-${addr}`);
+
+                const tokenRows = pricedTokens.map(t => {
+                    const isOffer = t._fromOffer;
+                    const cur = decodeCurrency(t.currency) || t.currency;
+                    const avatar = `https://xumm.app/avatar/${t.account}_200.png`;
+                    const srcBadge = t.priceSource !== 'none'
+                        ? `<span class="price-src ${t.priceSource}">${t.priceSource.toUpperCase()}</span>`
+                        : '';
+                    const offerBadge = isOffer ? `<span class="price-src dex" style="margin-left:4px;">OFFER</span>` : '';
+                    return `<div class="list-row">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <img src="${avatar}" class="token-icon" onerror="this.onerror=null;this.src='https://via.placeholder.com/24?text=${(cur||'?')[0]}'">
+                            <div>
+                                <strong>${cur}</strong>${srcBadge}${offerBadge}<br>
+                                <small style="color:var(--text-muted);font-size:0.8em;">${parseFloat(t.balance).toLocaleString()}</small>
+                            </div>
+                        </div>
+                        <div style="text-align:right">
+                            <div style="color:var(--accent-green);font-weight:600;">$${(t.valXrp * xrpUsd).toFixed(2)}</div>
+                            <small style="font-size:0.7em;">${t.valXrp.toFixed(2)} XRP</small>
+                        </div>
+                    </div>`;
+                }).join('') || '<div class="list-row">No tokens found</div>';
+
+                const poolRows = resolvedPools.map(p => {
+                    const fmtAmt = n => n < 0.0001 ? n.toExponential(2) : n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:6});
+                    return `<div class="lp-pool-row">
+                        <div class="lp-pool-header">
+                            <span><span class="price-src lp">LP</span> <strong>${p.cur1} / ${p.cur2}</strong></span>
+                            <div style="text-align:right">
+                                <div style="color:#c084ff;font-weight:600;">$${(p.xrpVal * xrpUsd).toFixed(2)}</div>
+                                <small style="font-size:0.7em;">${p.xrpVal.toFixed(2)} XRP est.</small>
+                            </div>
+                        </div>
+                        <div class="lp-pool-assets">
+                            <span class="lp-asset-pill">${fmtAmt(p.myAmt1)} ${p.cur1}</span>
+                            <span style="color:var(--text-muted);align-self:center;">+</span>
+                            <span class="lp-asset-pill">${fmtAmt(p.myAmt2)} ${p.cur2}</span>
+                        </div>
+                        <div style="margin-top:5px;color:var(--text-muted);font-size:0.75em;">
+                            Pool share: ${(p.share * 100).toFixed(4)}% &nbsp;·&nbsp; Fee: ${p.fee.toFixed(3)}%
+                            &nbsp;·&nbsp; <a href="https://xrpscan.com/amm/${p.ammAccount}" target="_blank" style="color:#c084ff;text-decoration:none;">View Pool ↗</a>
+                        </div>
+                    </div>`;
+                }).join('');
+
                 card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                        <small style="color:var(--text-muted); font-family:monospace;">${addr.slice(0,8)}...${addr.slice(-8)}</small>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+                        <small style="color:var(--text-muted);font-family:monospace;">${addr.slice(0,8)}...${addr.slice(-8)}</small>
                         <i class="ph-fill ph-check-circle" style="color:var(--accent-green)"></i>
                     </div>
                     <div class="silo-bal">${bal.toLocaleString(undefined, {minimumFractionDigits:2})} <span>XRP</span></div>
                     <div class="silo-usd">$${(totalXrpValue * xrpUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})} TOTAL</div>
-                    
+
                     <div class="silo-stats">
                         <div class="stat-col"><span class="stat-lbl">Available</span><span class="stat-val">${spendable.toFixed(2)}</span></div>
                         <div class="stat-col"><span class="stat-lbl">Reserve</span><span class="stat-val">${reserve.toFixed(2)}</span></div>
+                        ${resolvedPools.length > 0 ? `<div class="stat-col"><span class="stat-lbl">AMM Pools</span><span class="stat-val" style="color:#c084ff;">${resolvedPools.length}</span></div>` : ''}
                     </div>
 
+                    ${resolvedPools.length > 0 ? `
                     <div class="accordion">
-                        <div class="acc-header" onclick="toggleAcc(this)"><span>Storage Bin (${activeLines.length})</span><i class="ph ph-caret-down"></i></div>
-                        <div class="acc-body">
-                            ${pricedTokens.map(t => {
-                                const avatar = `https://xumm.app/avatar/${t.account}_200.png`;
-                                const srcBadge = t.priceSource !== 'none'
-                                    ? `<span class="price-src ${t.priceSource}">${t.priceSource.toUpperCase()}</span>`
-                                    : '';
-                                return `
-                                <div class="list-row">
-                                    <div style="display:flex; align-items:center; gap:10px;">
-                                        <img src="${avatar}" class="token-icon" onerror="this.onerror=null;this.src='https://via.placeholder.com/24?text=${t.currency[0]}'">
-                                        <div>
-                                            <strong>${t.currency.length > 3 ? 'TOKEN' : t.currency}</strong>${srcBadge}<br>
-                                            <small style="color:var(--text-muted); font-size:0.8em;">${parseFloat(t.balance).toLocaleString()}</small>
-                                        </div>
-                                    </div>
-                                    <div style="text-align:right">
-                                        <div style="color:var(--accent-green); font-weight:600;">$${(t.valXrp * xrpUsd).toFixed(2)}</div>
-                                        <small style="font-size:0.7em;">${t.valXrp.toFixed(2)} XRP</small>
-                                    </div>
-                                </div>`;
-                            }).join('') || '<div class="list-row">No tokens found</div>'}
+                        <div class="acc-header" onclick="toggleAcc(this)" style="border-left:3px solid #c084ff;">
+                            <span>🌊 AMM Pools (${resolvedPools.length})</span><i class="ph ph-caret-down"></i>
                         </div>
+                        <div class="acc-body">${poolRows}</div>
+                    </div>` : ''}
+
+                    <div class="accordion">
+                        <div class="acc-header" onclick="toggleAcc(this)">
+                            <span>Storage Bin (${pricedTokens.length}${offerTokens.length > 0 ? ` + ${offerTokens.length} offer` : ''})</span>
+                            <i class="ph ph-caret-down"></i>
+                        </div>
+                        <div class="acc-body">${tokenRows}</div>
                     </div>
-                    <button onclick="removeWallet('${addr}')" style="position:absolute; top:5px; right:5px; background:none; border:none; color:var(--accent-red); cursor:pointer; opacity:0.3; font-size:1.4em;">&times;</button>
+
+                    <button onclick="removeWallet('${addr}')" style="position:absolute;top:5px;right:5px;background:none;border:none;color:var(--accent-red);cursor:pointer;opacity:0.3;font-size:1.4em;">&times;</button>
                 `;
             } catch (e) {
                 console.error(`fetchSilo error for ${addr}:`, e);
@@ -932,12 +1210,13 @@
                     ? 'Network error — check your connection.'
                     : (e.message || 'Address unfunded, inactive, or request failed.');
                 document.getElementById(`card-${addr}`).innerHTML =
-                    `<div style="padding:20px; text-align:center; color:var(--accent-red); font-size: 0.8em;">${msg}</div>`;
+                    `<div style="padding:20px;text-align:center;color:var(--accent-red);font-size:0.8em;">${msg}</div>`;
             }
         }
 
         function removeWallet(addr) {
             vaultData = vaultData.filter(a => a !== addr);
+            delete walletSnapshots[addr];
             saveVault();
             siloTalk(CORN.pick(CORN.removeWallet)(addr));
             render();
@@ -948,6 +1227,248 @@
             if (localStorage.getItem(STORAGE_KEY)) showScreen('login');
             else showScreen('setup');
         };
+
+        async function downloadReport() {
+            const btn = document.getElementById('report-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner spin"></i> Building...';
+            siloTalk("Printing the harvest ledger... the accountant crow is busy.");
+
+            try {
+                const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+                        AlignmentType, HeadingLevel, BorderStyle, WidthType, ShadingType,
+                        LevelFormat } = docx;
+
+                const snaps = Object.entries(walletSnapshots);
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+                const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+
+                const totalXrp      = snaps.reduce((s,[,w]) => s + w.bal, 0);
+                const totalTokenXrp = snaps.reduce((s,[,w]) => s + w.tokenXrpValue, 0);
+                const totalSpend    = snaps.reduce((s,[,w]) => s + w.spendable, 0);
+                const totalUsd      = snaps.reduce((s,[,w]) => s + w.totalXrpValue, 0) * xrpUsd;
+                const grandXrp      = totalXrp + totalTokenXrp;
+
+                const border = { style: BorderStyle.SINGLE, size: 1, color: "DDDDDD" };
+                const borders = { top: border, bottom: border, left: border, right: border };
+                const cellMargins = { top: 80, bottom: 80, left: 120, right: 120 };
+
+                function hdr(text, level = HeadingLevel.HEADING_1) {
+                    return new Paragraph({ heading: level, children: [new TextRun({ text, bold: true })] });
+                }
+                function para(text, opts = {}) {
+                    return new Paragraph({ children: [new TextRun({ text, ...opts })], spacing: { after: 120 } });
+                }
+                function spacer() {
+                    return new Paragraph({ children: [new TextRun("")], spacing: { after: 80 } });
+                }
+                function rule() {
+                    return new Paragraph({
+                        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: "C8A000", space: 1 } },
+                        spacing: { after: 200 },
+                        children: [new TextRun("")]
+                    });
+                }
+                function twoColTable(rows, colW = [4680, 4680]) {
+                    return new Table({
+                        width: { size: 9360, type: WidthType.DXA },
+                        columnWidths: colW,
+                        rows: rows.map(([label, value], i) => new TableRow({
+                            children: [
+                                new TableCell({
+                                    borders, margins: cellMargins,
+                                    width: { size: colW[0], type: WidthType.DXA },
+                                    shading: { fill: i % 2 === 0 ? "FFF8E1" : "FFFFFF", type: ShadingType.CLEAR },
+                                    children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 20 })] })]
+                                }),
+                                new TableCell({
+                                    borders, margins: cellMargins,
+                                    width: { size: colW[1], type: WidthType.DXA },
+                                    shading: { fill: i % 2 === 0 ? "FFF8E1" : "FFFFFF", type: ShadingType.CLEAR },
+                                    children: [new Paragraph({ children: [new TextRun({ text: value, size: 20 })] })]
+                                })
+                            ]
+                        }))
+                    });
+                }
+
+                // ── Build document children ──
+                const children = [];
+
+                // Cover header
+                children.push(new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 100 },
+                    children: [new TextRun({ text: "🌽 CORN SILO — HARVEST REPORT", bold: true, size: 40, color: "B8860B" })]
+                }));
+                children.push(new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 60 },
+                    children: [new TextRun({ text: `Generated on ${dateStr} at ${timeStr}`, size: 20, color: "888888" })]
+                }));
+                children.push(new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 60 },
+                    children: [new TextRun({ text: `XRP/USD Rate: $${xrpUsd.toFixed(4)}`, size: 20, color: "888888" })]
+                }));
+                children.push(rule());
+
+                // Executive Summary prose
+                children.push(hdr("Executive Summary"));
+                children.push(para(
+                    `This report summarises the complete holdings across ${snaps.length} XRPL wallet${snaps.length !== 1 ? 's' : ''} tracked in your Corn Silo on ${dateStr}. ` +
+                    `At the time of this report, the combined portfolio holds ${totalXrp.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} XRP in native balance ` +
+                    `plus an additional ${totalTokenXrp.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} XRP equivalent in Layer-2 tokens, ` +
+                    `bringing the grand total portfolio value to approximately ${grandXrp.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} XRP ` +
+                    `(USD $${totalUsd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} at the current rate). ` +
+                    `Of the total XRP balance, ${totalSpend.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} XRP is freely spendable after accounting for network reserves.`
+                ));
+                children.push(spacer());
+
+                // Portfolio summary table
+                children.push(hdr("Portfolio Overview", HeadingLevel.HEADING_2));
+                children.push(twoColTable([
+                    ["Number of Wallets",        snaps.length.toString()],
+                    ["Total Native XRP Balance",  totalXrp.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + " XRP"],
+                    ["Total Token Value (XRP eq.)", totalTokenXrp.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + " XRP"],
+                    ["Grand Portfolio Value (XRP)", grandXrp.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + " XRP"],
+                    ["Grand Portfolio Value (USD)", "$" + totalUsd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})],
+                    ["Total Spendable XRP",        totalSpend.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + " XRP"],
+                    ["XRP/USD Rate Used",           "$" + xrpUsd.toFixed(4)],
+                ]));
+                children.push(spacer());
+                children.push(rule());
+
+                // Per-wallet detail
+                children.push(hdr("Wallet-by-Wallet Breakdown"));
+
+                for (const [addr, w] of snaps) {
+                    const walletUsd = w.totalXrpValue * xrpUsd;
+                    children.push(hdr(`Wallet: ${addr.slice(0,8)}...${addr.slice(-8)}`, HeadingLevel.HEADING_2));
+                    children.push(para(
+                        `This wallet holds ${w.bal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} XRP in its native balance. ` +
+                        `After deducting the XRPL network reserve of ${w.reserve.toFixed(2)} XRP (which covers the base reserve and object ownership costs), ` +
+                        `${w.spendable.toFixed(2)} XRP is available to spend or send. ` +
+                        `Including the estimated value of all held tokens, the total portfolio value for this wallet is approximately ` +
+                        `${w.totalXrpValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})} XRP ` +
+                        `(USD $${walletUsd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}).`
+                    ));
+                    children.push(spacer());
+
+                    // Wallet summary table
+                    children.push(twoColTable([
+                        ["Full Address",      addr],
+                        ["XRP Balance",       w.bal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + " XRP"],
+                        ["Spendable XRP",     w.spendable.toFixed(2) + " XRP"],
+                        ["Reserve Held",      w.reserve.toFixed(2) + " XRP"],
+                        ["Token Value (XRP)", w.tokenXrpValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + " XRP"],
+                        ["Total Value (XRP)", w.totalXrpValue.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + " XRP"],
+                        ["Total Value (USD)", "$" + walletUsd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})],
+                        ["Active Trust Lines", w.activeLines.length.toString()],
+                    ], [3500, 5860]));
+
+                    // Token detail table
+                    if (w.pricedTokens.length > 0) {
+                        children.push(spacer());
+                        children.push(hdr("Token Holdings", HeadingLevel.HEADING_3 || HeadingLevel.HEADING_2));
+
+                        const tokenRows = w.pricedTokens.map((t, i) => {
+                            const cur = (t.currency && t.currency.length > 3)
+                                ? ((() => { try { const b=t.currency.match(/.{1,2}/g).map(x=>parseInt(x,16)); const s=b.map(x=>String.fromCharCode(x)).join('').replace(/\0/g,'').trim(); return /^[\x20-\x7E]+$/.test(s)?s:t.currency.slice(0,8)+'…'; } catch{ return t.currency.slice(0,8)+'…'; } })())
+                                : (t.currency || '?');
+                            return new TableRow({
+                                children: [
+                                    new TableCell({ borders, margins: cellMargins, width: { size: 2000, type: WidthType.DXA }, shading: { fill: i%2===0?"FFF8E1":"FFFFFF", type: ShadingType.CLEAR }, children: [new Paragraph({ children: [new TextRun({ text: cur, bold: true, size: 18 })] })] }),
+                                    new TableCell({ borders, margins: cellMargins, width: { size: 2500, type: WidthType.DXA }, shading: { fill: i%2===0?"FFF8E1":"FFFFFF", type: ShadingType.CLEAR }, children: [new Paragraph({ children: [new TextRun({ text: parseFloat(t.balance).toLocaleString(), size: 18 })] })] }),
+                                    new TableCell({ borders, margins: cellMargins, width: { size: 2430, type: WidthType.DXA }, shading: { fill: i%2===0?"FFF8E1":"FFFFFF", type: ShadingType.CLEAR }, children: [new Paragraph({ children: [new TextRun({ text: t.valXrp.toFixed(4)+" XRP", size: 18 })] })] }),
+                                    new TableCell({ borders, margins: cellMargins, width: { size: 2430, type: WidthType.DXA }, shading: { fill: i%2===0?"FFF8E1":"FFFFFF", type: ShadingType.CLEAR }, children: [new Paragraph({ children: [new TextRun({ text: "$"+(t.valXrp*xrpUsd).toFixed(2), size: 18 })] })] }),
+                                ]
+                            });
+                        });
+                        const tokenHdrRow = new TableRow({ children: ["Token","Balance","Value (XRP)","Value (USD)"].map((h,ci)=>new TableCell({ borders, margins: cellMargins, width:{size:[2000,2500,2430,2430][ci],type:WidthType.DXA}, shading:{fill:"C8A000",type:ShadingType.CLEAR}, children:[new Paragraph({children:[new TextRun({text:h,bold:true,color:"FFFFFF",size:18})]})] })) });
+                        children.push(new Table({ width:{size:9360,type:WidthType.DXA}, columnWidths:[2000,2500,2430,2430], rows:[tokenHdrRow,...tokenRows] }));
+                    } else {
+                        children.push(para("This wallet holds no fungible tokens — pure XRP only.", { italics: true, color: "888888" }));
+                    }
+
+                    // AMM Pool positions
+                    if (w.ammPools && w.ammPools.length > 0) {
+                        children.push(spacer());
+                        children.push(hdr("AMM Liquidity Pool Positions", HeadingLevel.HEADING_3 || HeadingLevel.HEADING_2));
+                        children.push(para(
+                            `This wallet holds ${w.ammPools.length} active liquidity pool position${w.ammPools.length>1?'s':''} on the XRPL AMM. ` +
+                            `The amounts below represent this wallet's proportional share of each pool based on its LP token holdings.`
+                        ));
+                        const poolDataRows = w.ammPools.map((p, i) => new TableRow({
+                            children: [
+                                new TableCell({ borders, margins: cellMargins, width:{size:2400,type:WidthType.DXA}, shading:{fill:i%2===0?"F5EEFF":"FFFFFF",type:ShadingType.CLEAR}, children:[new Paragraph({children:[new TextRun({text:`${p.cur1} / ${p.cur2}`,bold:true,size:18})]})] }),
+                                new TableCell({ borders, margins: cellMargins, width:{size:2000,type:WidthType.DXA}, shading:{fill:i%2===0?"F5EEFF":"FFFFFF",type:ShadingType.CLEAR}, children:[new Paragraph({children:[new TextRun({text:`${p.myAmt1.toFixed(4)} ${p.cur1}`,size:18})]})] }),
+                                new TableCell({ borders, margins: cellMargins, width:{size:2000,type:WidthType.DXA}, shading:{fill:i%2===0?"F5EEFF":"FFFFFF",type:ShadingType.CLEAR}, children:[new Paragraph({children:[new TextRun({text:`${p.myAmt2.toFixed(4)} ${p.cur2}`,size:18})]})] }),
+                                new TableCell({ borders, margins: cellMargins, width:{size:1530,type:WidthType.DXA}, shading:{fill:i%2===0?"F5EEFF":"FFFFFF",type:ShadingType.CLEAR}, children:[new Paragraph({children:[new TextRun({text:`${(p.share*100).toFixed(4)}%`,size:18})]})] }),
+                                new TableCell({ borders, margins: cellMargins, width:{size:1430,type:WidthType.DXA}, shading:{fill:i%2===0?"F5EEFF":"FFFFFF",type:ShadingType.CLEAR}, children:[new Paragraph({children:[new TextRun({text:`$${(p.xrpVal*xrpUsd).toFixed(2)}`,size:18,color:"7B3FBE"})]})] }),
+                            ]
+                        }));
+                        const poolHdrRow = new TableRow({ children: ["Pair","My Asset 1","My Asset 2","Pool Share","Value (USD)"].map((h,ci)=>new TableCell({ borders, margins:cellMargins, width:{size:[2400,2000,2000,1530,1430][ci],type:WidthType.DXA}, shading:{fill:"7B3FBE",type:ShadingType.CLEAR}, children:[new Paragraph({children:[new TextRun({text:h,bold:true,color:"FFFFFF",size:18})]})] })) });
+                        children.push(new Table({ width:{size:9360,type:WidthType.DXA}, columnWidths:[2400,2000,2000,1530,1430], rows:[poolHdrRow,...poolDataRows] }));
+                    }
+                    children.push(spacer());
+                    children.push(rule());
+                }
+
+                // Footer note
+                children.push(para(
+                    "Disclaimer: Token prices are estimated using on-chain AMM pool depths and DEX order book midpoints. " +
+                    "All USD values are calculated at the snapshot rate listed above and are for informational purposes only. " +
+                    "This report was generated by Corn Silo and does not constitute financial advice. " +
+                    "Not your keys, not your corn. 🌽",
+                    { italics: true, color: "888888", size: 18 }
+                ));
+
+                // Assemble & download
+                const doc = new Document({
+                    styles: {
+                        default: { document: { run: { font: "Arial", size: 22 } } },
+                        paragraphStyles: [
+                            { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true,
+                              run: { size: 34, bold: true, font: "Arial", color: "8B6914" },
+                              paragraph: { spacing: { before: 280, after: 160 }, outlineLevel: 0 } },
+                            { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true,
+                              run: { size: 26, bold: true, font: "Arial", color: "2D5A8E" },
+                              paragraph: { spacing: { before: 200, after: 120 }, outlineLevel: 1 } },
+                            { id: "Heading3", name: "Heading 3", basedOn: "Normal", next: "Normal", quickFormat: true,
+                              run: { size: 22, bold: true, font: "Arial", color: "4A7C59" },
+                              paragraph: { spacing: { before: 160, after: 80 }, outlineLevel: 2 } },
+                        ]
+                    },
+                    sections: [{
+                        properties: {
+                            page: {
+                                size: { width: 12240, height: 15840 },
+                                margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+                            }
+                        },
+                        children
+                    }]
+                });
+
+                const buffer = await Packer.toBlob(doc);
+                const url = URL.createObjectURL(buffer);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `CornSilo_Report_${now.toISOString().slice(0,10)}.docx`;
+                a.click();
+                URL.revokeObjectURL(url);
+                siloTalk("Harvest report printed and ready! The accountant crow approves. 📄🌽");
+
+            } catch(err) {
+                console.error('Report error:', err);
+                siloTalk("The printing press jammed! Couldn't generate the report. Check console.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-file-doc"></i> Download Report';
+            }
+        }
     </script>
 </body>
 </html>
